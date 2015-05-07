@@ -12,9 +12,7 @@
   --------------------------------------------
   Base Modules:
   --------------------------------------------
-  UI
-   - UI.Util
-   - UI.Forms
+  Forms
   --------------------------------------------
   DB  - To be implemented - Adapters and
         interfaces for Web SQL, IndexedDB and
@@ -36,41 +34,43 @@
 
 /* UI Module */
 
-var UI = (function($, B, H, T, UI) 
+var UI = (function($, H, t, B) 
 {
-  'use  strict';
+  'use strict';
 
-  /* Define general (and useful) static UI "utility" methods */
-  UI.Util = UI.Util || {
-    /*  mergeObjects(custom, default): Take two objects and apply key/value pairs defined in "cust", 
-        to those defined in "obj", overriding only key/val pairs from "cust" */
-    mergeObjects : function( cust, obj )
+  /* Define private utility methods */
+
+  /*  mergeObjects(custom, default): Take two objects and apply key/value pairs defined in "cust", 
+      to those defined in "obj", overriding only key/val pairs from "cust" */
+  var _mergeObjects = function( cust, obj )
+  {
+    cust = cust || {};
+    obj  = obj  || {};
+
+    for(var opt in cust)
     {
-      cust = cust || {};
-      obj  = obj  || {};
-
-      for(var opt in cust)
-      {
-        if( typeof cust[opt]  === 'object' )
-          this.mergeObjects(obj[opt], obj[opt]);
-        else
-          obj[opt] = cust[opt];
-      }
-
-      return obj;
+      if( typeof cust[opt]  === 'object' )
+        _mergeObjects(obj[opt], obj[opt]);
+      else
+        obj[opt] = cust[opt];
     }
-  };
+    return obj;
+  }
 
-  /* Form UI Methods */
+  /* Private Form Object */
 
-  UI.Forms = UI.Forms || {};
+  var _Forms = {};
+
+  /* Private Database Object */
+
+  // var _DB = {};
 
   /* 
-    UI.Forms.state preserves and retrieves a given Form state from Local Storage 
+    _Forms.state preserves and retrieves a given Form state from Local Storage 
   */
 
   /* Constructor */
-  UI.Forms.state = function( $form, key )
+  _Forms.state = function( $form, key )
   {
     this.$form = $form;
     this.key = key;
@@ -78,7 +78,7 @@ var UI = (function($, B, H, T, UI)
   };
 
   /* Set key "key" = string containing serialized Form Values */
-  UI.Forms.state.prototype.set = function()
+  _Forms.state.prototype.set = function()
   {
     this.data = this.$form.serializeArray();
 
@@ -88,14 +88,14 @@ var UI = (function($, B, H, T, UI)
   };
 
   /* Get key "key" from localStorage (object of serialized Form Values) */
-  UI.Forms.state.prototype.get = function()
+  _Forms.state.prototype.get = function()
   {
     /* Update to check data integrity before retrieving - newest first */
-
+    
     return JSON.parse(localStorage.getItem(this.key));
   };
 
-  UI.Forms.state.prototype.sync = function()
+  _Forms.state.prototype.sync = function()
   {
     /* Update to check data integrity before retrieving - newest first */
     var _data = this.get();
@@ -107,14 +107,14 @@ var UI = (function($, B, H, T, UI)
   };
 
   /* Reset Form state, remove key/value from localStorage */
-  UI.Forms.state.prototype.reset = function()
+  _Forms.state.prototype.reset = function()
   {
     this.$form[0].reset();
     localStorage.removeItem(this.key);
   };
 
-  /* UI.Forms.toggleDisable Constructor */
-  UI.Forms.toggleDisable = function( $source, $target, ev )
+  /* _Forms.toggleDisable Constructor */
+  _Forms.toggleDisable = function( $source, $target, ev )
   {
     /*
       Usage:
@@ -131,12 +131,12 @@ var UI = (function($, B, H, T, UI)
 
       JavaScript -
 
-      var toggleDisable = new UI.Forms.toggleDisable();
+      var toggleDisable = new _Forms.toggleDisable();
       (var toggleInstance = ) toggleDisable.init();
 
       Same as:
 
-      UI.Forms.toggleDisable($('#enablesExample'), $('#example'), 'click');
+      _Forms.toggleDisable($('#enablesExample'), $('#example'), 'click');
     */
 
     /* Defaults */
@@ -145,8 +145,8 @@ var UI = (function($, B, H, T, UI)
     this.ev = ev || 'click'; // 'click', 'change', etc.
   };
 
-  /* UI.Forms.toggleDisable Instance Methods */
-  UI.Forms.toggleDisable.prototype.init = function()
+  /* _Forms.toggleDisable Instance Methods */
+  _Forms.toggleDisable.prototype.init = function()
   {
     var _$target = this.$target;
 
@@ -165,26 +165,26 @@ var UI = (function($, B, H, T, UI)
     return this;
   };
 
-  /* UI.Forms.typeAheadSearch Constructor */
-  UI.Forms.typeAheadSearch = function( $input, config, templates )
+  /* _Forms.typeAheadSearch Constructor */
+  _Forms.typeAheadSearch = function( $input, config, templates )
   {
     /*
       Usage:
-      var typeAheadSearch = UI.Forms.typeAheadSearch(); // (Call constructor, using defaults)
+      var typeAheadSearch = _Forms.typeAheadSearch(); // (Call constructor, using defaults)
       typeAheadSearch.init(); // Initialize
 
       Override Defaults, types:
-      UI.Forms.typeAheadSearch( jQuery(input_selector), config, templates, data, callback )
+      _Forms.typeAheadSearch( jQuery(input_selector), config, templates, data, callback )
 
       NOTE: typeAheadSearch.init() returns it's instance:
-      var typeAheadSearch = UI.Forms.typeAheadSearch();
+      var typeAheadSearch = _Forms.typeAheadSearch();
       var typeAheadInstance = typeAheadSearch.init();
       console.dir(typeAheadInstance); // Context of instance "typeAheadInstance"
     */
 
     try
     {
-      if(typeof Bloodhound !== 'function')
+      if(typeof B !== 'function')
       {
         throw 'Missing Dependency: \'typeahead.bundle.js::Bloodhound()\' not found! ' +
               'Type-Ahead Search will be disabled.';
@@ -194,7 +194,7 @@ var UI = (function($, B, H, T, UI)
       this.$input = [].shift.apply(arguments) || $('.typeahead');
 
       /* Configuration */
-      this.config = UI.Util.mergeObjects( [].shift.apply(arguments), {
+      this.config = _mergeObjects( [].shift.apply(arguments), {
         name           : 'data',
         displayKey     : 'name',
         //url            : 'data/data.json',
@@ -204,7 +204,7 @@ var UI = (function($, B, H, T, UI)
       });
 
       /* Handlebars Templates */
-      this.templates = UI.Util.mergeObjects( [].shift.apply(arguments), {
+      this.templates = _mergeObjects( [].shift.apply(arguments), {
         suggestion : $('#search-suggestion-template').html(),
         notFound   : $('#search-not-found-template').html(),
         results    : $('#search-results-template').html()
@@ -243,8 +243,8 @@ var UI = (function($, B, H, T, UI)
     }
   };
 
-  /* UI.Forms.typeAheadSearch Instance Initialization */
-  UI.Forms.typeAheadSearch.prototype.init = function()
+  /* _Forms.typeAheadSearch Instance Initialization */
+  _Forms.typeAheadSearch.prototype.init = function()
   {
     try
     {
@@ -294,19 +294,20 @@ var UI = (function($, B, H, T, UI)
 
 
   /* 
-    UI.Forms.chosenSelects( config )
+    _Forms.chosenSelects( config )
 
     Default usage:
-    var selects = new UI.Forms.chosenSelects();
+    var selects = new _Forms.chosenSelects();
     selects.init();
 
-    Override default configuration by specifying options during instantiation:
-    var selects = new UI.Forms.chosenSelects( {'.chosen-select' : { disable_search_threshold : 15 } } );
+    Override default configuration with:
+    var selects = new _Forms.chosenSelects( {'.chosen-select' : { disable_search_threshold : 15 } } );
     selects.init();
   */
-  UI.Forms.chosenSelects = function( config )
+  _Forms.chosenSelects = function( config )
   {
-    this.config = UI.Util.mergeObjects(config, {
+    /* Defaults - override if config is provided, otherwise define defaults here */
+    this.config = _mergeObjects(config, {
       '.chosen-select' : {
         disable_search_threshold : 10,
         width : '100%'
@@ -324,12 +325,19 @@ var UI = (function($, B, H, T, UI)
         width:"50%"
       }
     });
+
+    /*
+      Return "this" context, useful if instance needs to be configured before (for example)
+      being passed to another method or callback to be initialized at another time.
+    */
+
+    return this;
   };
 
-  /* UI.Forms.chosenSelects Instance Methods */
+  /* _Forms.chosenSelects Instance Methods */
 
   /* Initialize instance */
-  UI.Forms.chosenSelects.prototype.init = function()
+  _Forms.chosenSelects.prototype.init = function()
   {
     try
     {
@@ -371,14 +379,16 @@ var UI = (function($, B, H, T, UI)
   };
 
   /*  
-    UI.Forms.RTE - Rich Text Editor Constructor using TinyMCE (NOTE: May update to support CKEditor).
-    Returns instance with method to "init" or "invoke" multiple TinyMCE/RTE Editors
+    _Forms.RTE - Rich Text Editor Constructor using TinyMCE (NOTE: May update to support CKEditor).
+    Returns instance with method to "init" or "invoke" TinyMCE/RTE Editors (Could be properly
+    updated to use "Factory" pattern, returning new tinymce.init() instance altogether - would
+    certainly make this easier to use!)
   */
-  UI.Forms.RTE = function()
+  _Forms.RTE = function()
   {
     try
     {
-      if(typeof T === 'undefined' || typeof T.init !== 'function')
+      if(typeof t === 'undefined' || typeof t.init !== 'function')
       {
         /* Bail immediately if the plugin is not available! */
         throw 'Missing Dependency: \'tinymce.js\' not found! Rich-Text Editing disabled.';
@@ -403,7 +413,7 @@ var UI = (function($, B, H, T, UI)
     }
     catch (error)
     {
-      // Missing plugin is not a fatal error; warning is sufficient.
+      // Missing plugin is not a fatal error; warning is sufficient!
       console.warn(error.toString());
     }
     finally
@@ -413,91 +423,16 @@ var UI = (function($, B, H, T, UI)
   };
 
   // TinyMCE Initialization:
-  UI.Forms.RTE.prototype.init = function( config )
+  _Forms.RTE.prototype.init = function( config )
   {
-    this.config = UI.Util.mergeObjects( config, this.config );
+    this.config = _mergeObjects( config, this.config );
 
-    return tinymce.init( this.config );
+    return t.init( this.config );
   };
 
-  /* Now that we've defined what UI is and can do, let's return it for use! */
-  return UI;
+  /* Now that we've defined what these private methods can do, let's go public! */
+  return {
+    Forms : _Forms
+  };
 
-})(jQuery, Bloodhound, Handlebars, tinymce, UI || {});
-
-/* ===================================================================================== */
-/* EXAMPLES ============================================================================ */
-/* ===================================================================================== */
-
-$(document).ready(function(){
-  'use strict';
-
-  /* Initialize Form "chosen" Selects */
-
-  var selects = new UI.Forms.chosenSelects();
-  selects.init();
-
-  /* Initialize Form RTEs (TinyMCE) */
-  var rte = new UI.Forms.RTE();
-
-  rte.init({'selector': 'textarea.commentEdit'});
-
-  /* Initialize "form disable" toggles using defaults */
-  var toggleDisable = new UI.Forms.toggleDisable();
-  toggleDisable.init();
-
-  /* Initialize Type-Ahead engine for Contact Search */
-  var typeAhead = new UI.Forms.typeAheadSearch( 
-    // Input
-    $('.contact-lookup'), 
-    // Config
-    {
-      name : 'contacts',
-      displayKey : 'name',
-      successClass : 'success',
-      resultsSelector : '#details'
-    },
-    // Templates
-    {
-      suggestion : $('#contactSuggestion').html(),
-      notFound : $('#contactNotFound').html(),
-      results : $('#contactDetail').html()
-    }, 
-    // Local Data
-    [],
-    // Register Callbacks
-    function( context )
-    {
-      /* Display area showing "results" for selected item */
-      var $results = $(context.config.resultsSelector);
-
-      /* Update Result Details based on action, if DOM exists for Results: */
-      if( $results )
-      {
-        context.$input.on('typeahead:selected', function(e, data, name) 
-        {
-          var template = Handlebars.compile(context._templates.results);
-          $results.html(template(data));
-          context.$input.addClass(context._config.successClass);
-        }).keypress(function(e) 
-        {
-          if(e.which == 13 && $(e.target).val() === '')
-          {
-            $results.html('');
-            context.$input.removeClass(context._config.successClass);
-          }
-        }).focusout(function(e) 
-        {
-          if( $(e.target).val() === '' )
-          {
-            $results.html('');
-            context.$input.removeClass(context._config.successClass);
-          }
-        });
-      }
-      return context;
-    }
-  );
-  
-  typeAhead.init();
-});
+})(jQuery, Handlebars, tinymce, Bloodhound);

@@ -55,7 +55,7 @@ var UI = (function($, H, t, B)
         obj[opt] = cust[opt];
     }
     return obj;
-  }
+  };
 
   /* Private Form Object */
 

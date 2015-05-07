@@ -1,30 +1,26 @@
 /* 
   --------------------------------------------
-  User Interface (UI) Helper Library v 0.0.1
+  User Interface (UI) Helper Library
   --------------------------------------------
-  @author: Justin Robert Evans
-  @description: Implements functionality for HTML5 elements, Client-Side GUI components, Client-Side
-  Database Interface, Form extensions, etc.
-  @date: 05/05/2015
+  @author Justin Robert Evans
+  @version 0.0.1
   
-  [ NOTE: This is a work in progress! ]
+  Implements functionality for HTML5 elements, Client-Side GUI components, Client-Side
+  Database Interface, Form extensions, etc.
+  
+  05/07/2015
 
   --------------------------------------------
   Base Modules:
   --------------------------------------------
-  Forms
+  Forms - DOM/UX/UI/LocalStorage Functionality 
   --------------------------------------------
   DB  - To be implemented - Adapters and
         interfaces for Web SQL, IndexedDB and
         "localStorage" for support browers.
-        See UI.Forms.state() for basic 
-        "localStorage" implementation - this is
-        currently used to persist Form
-        information prior to submission and
-        provides offline access
 
   --------------------------------------------
-  Requirements:
+  Requirements (TODO: Define in Module Deps):
   --------------------------------------------
   * jQuery      v 1.10.2
   * Typeahead   v 0.10.5
@@ -38,10 +34,13 @@ var UI = (function($, H, t, B)
 {
   'use strict';
 
-  /* Define private utility methods */
-
-  /*  mergeObjects(custom, default): Take two objects and apply key/value pairs defined in "cust", 
-      to those defined in "obj", overriding only key/val pairs from "cust" */
+  /**
+   * Merge two objects (generally configurations) together, overriding items from
+   * the first to the second (if not in second, add to second)
+   *
+   * @this {function}
+   * @return {object} Final, merged object
+   */
   var _mergeObjects = function( cust, obj )
   {
     cust = cust || {};
@@ -61,23 +60,27 @@ var UI = (function($, H, t, B)
 
   var _Forms = {};
 
-  /* Private Database Object */
-
-  // var _DB = {};
-
-  /* 
-    _Forms.state preserves and retrieves a given Form state from Local Storage 
+  /**
+   * Creates instance of _Forms.state
+   * 
+   * @constructor
+   * @this {_Forms}
+   * @param {$object} $form jQuery-Extended "form"
+   * @param {string} key  
   */
-
-  /* Constructor */
   _Forms.state = function( $form, key )
   {
     this.$form = $form;
     this.key = key;
-    this.data = new Object();
+    this.data = {};
   };
 
-  /* Set key "key" = string containing serialized Form Values */
+  /** 
+   * Set key "key" = string containing serialized Form Values 
+   *
+   * @this {_Forms.state}
+   * @return {array} [Returns array of objects]
+  */
   _Forms.state.prototype.set = function()
   {
     this.data = this.$form.serializeArray();
@@ -87,65 +90,68 @@ var UI = (function($, H, t, B)
     return this.data;
   };
 
-  /* Get key "key" from localStorage (object of serialized Form Values) */
+  /** 
+   * Get key "key" from localStorage (object of serialized Form Values)
+   * 
+   * @return {array} JSON Data representing Serialized Form
+   */
   _Forms.state.prototype.get = function()
   {
-    /* Update to check data integrity before retrieving - newest first */
-    
+    /* TODO: Update to check data integrity before retrieving - newest first */
     return JSON.parse(localStorage.getItem(this.key));
   };
 
+  /**
+   * Syncronize form stored in "_Forms.state" instance with data in "localStorage"
+   *
+   * @return {object} Returns the $form modified from "sync"
+   */
   _Forms.state.prototype.sync = function()
   {
-    /* Update to check data integrity before retrieving - newest first */
+    /* TODO: Update to check data integrity before retrieving - newest first */
     var _data = this.get();
 
     for(var i=0; i<_data.length;++i)
     {
       this.$form[0][_data[i].name].value = _data[i].value;
     }
+
+    return this.$form;
   };
 
-  /* Reset Form state, remove key/value from localStorage */
+  /**
+   * Reset Form state, remove key/value from localStorage
+   * 
+   * @return {object} Returns the $form
+   */
   _Forms.state.prototype.reset = function()
   {
     this.$form[0].reset();
     localStorage.removeItem(this.key);
+
+    return this.$form;
   };
 
-  /* _Forms.toggleDisable Constructor */
+  /**
+   * _Forms.toggleDisable Constructor
+   * 
+   * @constructor
+   * @param  {$object} jQuery-extended "source" element
+   * @param  {$object} jQuery-extended "target" element
+   * @param  {string}  String denoting "event" type to listen for
+   */
   _Forms.toggleDisable = function( $source, $target, ev )
   {
-    /*
-      Usage:
-
-      HTML -
-
-      <div class="toggle-disable">
-        <input class="toggle-disable-target" id="example" name="example" type="text" disabled="disabled" />
-        <label for="enablesExample">
-          <input class="toggle-disable-source" type="checkbox" id="enablesExample" name="enablesExample" type="checkbox"/>
-          Enable Input
-        </label>
-      </div>
-
-      JavaScript -
-
-      var toggleDisable = new _Forms.toggleDisable();
-      (var toggleInstance = ) toggleDisable.init();
-
-      Same as:
-
-      _Forms.toggleDisable($('#enablesExample'), $('#example'), 'click');
-    */
-
-    /* Defaults */
     this.$source = $source || $('.toggle-disable').find('.toggle-disable-source');
     this.$target = $target || $('.toggle-disable').find('.toggle-disable-target');
     this.ev = ev || 'click'; // 'click', 'change', etc.
   };
 
-  /* _Forms.toggleDisable Instance Methods */
+  /**
+   * _Forms.toggleDisable initialization
+   * 
+   * @return {function} This context
+   */
   _Forms.toggleDisable.prototype.init = function()
   {
     var _$target = this.$target;
@@ -165,23 +171,16 @@ var UI = (function($, H, t, B)
     return this;
   };
 
-  /* _Forms.typeAheadSearch Constructor */
+  /**
+   * _Forms.typeAheadSearch Constructor
+   * 
+   * @param  {$object}  $input    jQuery-extended input for search
+   * @param  {object}   config    Object for storing typeahead Configuration
+   * @param  {array}    templates Array of template references
+   * @return {function}           This context
+   */
   _Forms.typeAheadSearch = function( $input, config, templates )
   {
-    /*
-      Usage:
-      var typeAheadSearch = _Forms.typeAheadSearch(); // (Call constructor, using defaults)
-      typeAheadSearch.init(); // Initialize
-
-      Override Defaults, types:
-      _Forms.typeAheadSearch( jQuery(input_selector), config, templates, data, callback )
-
-      NOTE: typeAheadSearch.init() returns it's instance:
-      var typeAheadSearch = _Forms.typeAheadSearch();
-      var typeAheadInstance = typeAheadSearch.init();
-      console.dir(typeAheadInstance); // Context of instance "typeAheadInstance"
-    */
-
     try
     {
       if(typeof B !== 'function')
@@ -238,12 +237,15 @@ var UI = (function($, H, t, B)
     }
     finally
     {
-      /* Return context */
       return this;
     }
   };
 
-  /* _Forms.typeAheadSearch Instance Initialization */
+  /**
+   * _Forms.typeAheadSearch Instance Initialization
+   * 
+   * @return {function} This context
+   */
   _Forms.typeAheadSearch.prototype.init = function()
   {
     try
@@ -253,7 +255,6 @@ var UI = (function($, H, t, B)
         throw 'Unable to initialize \'Bloodhound\' search engine.';
       }
 
-      /* Initialize 'local' and 'prefetch' (url/remote query) data sources */
       this.engine.initialize();
       this.engine.clearPrefetchCache();
 
@@ -273,13 +274,10 @@ var UI = (function($, H, t, B)
         }
       });
 
-      /*  The following passes this method's instance, with updated instance variables (after
-          merging defaults) to a supplied callback, "called" here: */
       if(typeof this.callback === 'function' )
       {
-        this.callback.call(this.callback, this); // ( functionReference, context )
+        this.callback.call(this.callback, this);
       }
-
     }
     catch(error)
     {
@@ -287,26 +285,18 @@ var UI = (function($, H, t, B)
     }
     finally
     {
-      /* Return context */
       return this;
     }
   };
 
-
-  /* 
-    _Forms.chosenSelects( config )
-
-    Default usage:
-    var selects = new _Forms.chosenSelects();
-    selects.init();
-
-    Override default configuration with:
-    var selects = new _Forms.chosenSelects( {'.chosen-select' : { disable_search_threshold : 15 } } );
-    selects.init();
-  */
+  /**
+   * _Forms.chosenSelects( config )
+   *
+   * @param {object} config Object storing configurations indexed by CSS selectors
+   * @return {function} This context
+   */
   _Forms.chosenSelects = function( config )
   {
-    /* Defaults - override if config is provided, otherwise define defaults here */
     this.config = _mergeObjects(config, {
       '.chosen-select' : {
         disable_search_threshold : 10,
@@ -326,35 +316,26 @@ var UI = (function($, H, t, B)
       }
     });
 
-    /*
-      Return "this" context, useful if instance needs to be configured before (for example)
-      being passed to another method or callback to be initialized at another time.
-    */
-
     return this;
   };
 
   /* _Forms.chosenSelects Instance Methods */
-
-  /* Initialize instance */
   _Forms.chosenSelects.prototype.init = function()
   {
     try
     {
       if(typeof $.prototype.chosen !== 'function')
       {
-        /* Bail immediately if the plugin is not available! */
         throw 'Missing Dependency: \'chosen.jquery.js\' plugin not found! Filterable drop-downs are disabled.';
       }
 
       for (var selector in this.config) 
       {
-        /* Cache jQuery-extended "select" element */
         var _$select = $(selector);
 
         /* 
           Fix for jQuery 'hidden' selects, i.e., those in "tabs" or hidden forms,
-          to give them "layout" and thus render appropriately when "show"n
+          to give them "layout" and thus render appropriately when called to .show()
         */
         _$select.css({
           position: 'absolute',
@@ -368,21 +349,16 @@ var UI = (function($, H, t, B)
     }
     catch(error)
     {
-      // Missing plugin is not a fatal error. A warning will suffice.
       console.warn(error.toString());
     }
     finally
     {
-      /* Return context */
       return this;
     }
   };
 
   /*  
-    _Forms.RTE - Rich Text Editor Constructor using TinyMCE (NOTE: May update to support CKEditor).
-    Returns instance with method to "init" or "invoke" TinyMCE/RTE Editors (Could be properly
-    updated to use "Factory" pattern, returning new tinymce.init() instance altogether - would
-    certainly make this easier to use!)
+    _Forms.RTE - Rich Text Editor Constructor using TinyMCE 
   */
   _Forms.RTE = function()
   {
@@ -436,3 +412,6 @@ var UI = (function($, H, t, B)
   };
 
 })(jQuery, Handlebars, tinymce, Bloodhound);
+
+/* Another TODO: Finish JSDoc for existing code */
+/* http://en.wikipedia.org/wiki/JSDoc */

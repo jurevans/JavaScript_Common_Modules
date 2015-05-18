@@ -35,25 +35,25 @@ var UI = (function($, H, t, B)
   'use strict';
 
   /**
-   * Merge two objects (generally configurations) together, overriding items from
-   * the first to the second (if not in second, add to second)
+   * Merge two objects together, overriding/adding items from
+   * the second (b) to first (a)
    *
    * @this {function}
    * @return {object} Final, merged object
    */
-  var _mergeObjects = function( cust, obj )
+  var _merge = function( a, b )
   {
-    cust = cust || {};
-    obj  = obj  || {};
+    a = a || {},
+    b = b || {};
 
-    for(var opt in cust)
+    for(var k in b)
     {
-      if( typeof cust[opt]  === 'object' )
-        _mergeObjects(obj[opt], obj[opt]);
-      else
-        obj[opt] = cust[opt];
+      ( typeof b[k]  === 'object' )
+        ? _merge(a[k], b[k])
+        : a[k] = b[k];
     }
-    return obj;
+
+    return a;
   };
 
   /* Private Form Object */
@@ -193,21 +193,21 @@ var UI = (function($, H, t, B)
       this.$input = [].shift.apply(arguments) || $('.typeahead');
 
       /* Configuration */
-      this.config = _mergeObjects( [].shift.apply(arguments), {
+      this.config = _merge( {
         name           : 'data',
         displayKey     : 'name',
         //url            : 'data/data.json',
         //remote         : 'data/queries/%QUERY.json',
         detailSelector : '.details',
         successClass   : '.success'
-      });
+      }, [].shift.apply(arguments) );
 
       /* Handlebars Templates */
-      this.templates = _mergeObjects( [].shift.apply(arguments), {
+      this.templates = _merge( {
         suggestion : $('#search-suggestion-template').html(),
         notFound   : $('#search-not-found-template').html(),
         results    : $('#search-results-template').html()
-      });
+      }, [].shift.apply(arguments) );
 
       /* JSON Data */
       this.localData = [].shift.apply(arguments) || [];
@@ -297,7 +297,7 @@ var UI = (function($, H, t, B)
    */
   _Forms.chosenSelects = function( config )
   {
-    this.config = _mergeObjects(config, {
+    this.config = _merge({
       '.chosen-select' : {
         disable_search_threshold : 10,
         width : '100%'
@@ -314,7 +314,7 @@ var UI = (function($, H, t, B)
       '.chosen-select-width' : {
         width:"50%"
       }
-    });
+    }, config);
 
     return this;
   };
@@ -401,7 +401,7 @@ var UI = (function($, H, t, B)
   // TinyMCE Initialization:
   _Forms.RTE.prototype.init = function( config )
   {
-    this.config = _mergeObjects( config, this.config );
+    this.config = _merge( this.config, config );
 
     return t.init( this.config );
   };
